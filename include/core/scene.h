@@ -1,0 +1,5 @@
+#ifndef INCLUDE_CORE_SCENE
+#define INCLUDE_CORE_SCENE
+
+
+#endif /* INCLUDE_CORE_SCENE */

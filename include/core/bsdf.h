@@ -1,0 +1,5 @@
+#ifndef INCLUDE_CORE_BSDF
+#define INCLUDE_CORE_BSDF
+
+
+#endif /* INCLUDE_CORE_BSDF */

@@ -1,0 +1,5 @@
+#ifndef INCLUDE_CORE_RENDER
+#define INCLUDE_CORE_RENDER
+
+
+#endif /* INCLUDE_CORE_RENDER */
