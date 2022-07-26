@@ -1,17 +1,10 @@
 #ifndef INCLUDE_CORE_SHAPE
 #define INCLUDE_CORE_SHAPE
 
-#include <array>
-#include <initializer_list>
+#include "material.hpp"
+#include "utility.hpp"
 
-#include <glm/glm.hpp>
-
-#include "core/material.h"
-#include "core/utility.h"
-
-/*
- * Base class for primitive objects from which the scene is composed - triangles, spheres, etc
- */
+// Base class for primitive objects from which the scene is composed - triangles, spheres, etc
 class Shape {
 public:
     virtual ~Shape() {};
@@ -23,19 +16,13 @@ public:
      */
     virtual bool intersects(const Ray& ray, float& t) = 0;
 
-    /*
-     * Returns the material of the shape at the intersection position
-     */
+    // Returns the material of the shape at the intersection position
     virtual Material getMaterial() const = 0;
 
-    /*
-     * Returns a unit vector perpendicular to the shape at the last intersection position
-     */
+    // Returns the normal vector to the shape at the last intersection position
     virtual glm::vec3 getNormal() const = 0;
 
-    /*
-     * Returns the smallest possible axis-aligned box that encloses the entire shape
-     */
+    // Returns the smallest possible axis-aligned box that encloses the entire shape
     virtual Box getBoundingBox() const = 0;
 };
 
@@ -45,9 +32,9 @@ public:
         glm::vec3 pos; // The position of the vertex
     };
 
-    explicit TriangleShape(std::array<Vertex, 3>&& vertices) :
+    explicit TriangleShape(const std::array<Vertex, 3>& vertices) :
         m_vertices(vertices) {}
-    
+
     /*
      * Ray-triangle intersection calculation using the Möller-Trumbore algorithm
      *
@@ -91,8 +78,7 @@ public:
         m_normal *= glm::sign(dot(m_normal, ray.d));
 
         // Store barycentric coordinates for later
-        m_uv.x = u;
-        m_uv.y = v;
+        m_uv = glm::vec2(u, v);
 
         return true;
     }
@@ -112,6 +98,7 @@ public:
         glm::vec3 b = m_vertices[1].pos;
         glm::vec3 c = m_vertices[2].pos;
 
+        // Min/max of each position along each axis
         return {
             glm::min(a, glm::min(b, c)),
             glm::max(a, glm::max(b, c))
@@ -121,8 +108,8 @@ public:
 private:
     const std::array<Vertex, 3> m_vertices;
 
-    glm::vec2 m_uv; // barycentric coordinates from last intersection
-    glm::vec3 m_normal; // normal vector from last intersection
+    glm::vec2 m_uv; // The barycentric coordinates computed from the last intersection
+    glm::vec3 m_normal; // The normal vector computed from the last intersection
 };
 
 class SphereShape : public Shape {
@@ -158,7 +145,7 @@ public:
         } else if (distances.x < 0.0) {
             t = distances.y; // the ray is inside of the sphere; take the distance to exit the sphere
         } else {
-            t = distances.x; // the ray is outside of the sphere and pointing towards it; take the distacne to enter the sphere
+            t = distances.x; // the ray is outside of the sphere and pointing towards it; take the distance to enter the sphere
         }
 
         // Compute and store the normal vector to the sphere at the intersection point
@@ -187,7 +174,7 @@ private:
     const glm::vec3 m_origin;
     const float m_radius;
 
-    glm::vec3 m_normal; // normal vector from last intersection
+    glm::vec3 m_normal; // The normal vector computed from the last intersection
 };
 
 #endif /* INCLUDE_CORE_SHAPE */

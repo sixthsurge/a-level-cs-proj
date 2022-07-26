@@ -1,5 +1,0 @@
-#ifndef INCLUDE_CORE_APP
-#define INCLUDE_CORE_APP
-
-
-#endif /* INCLUDE_CORE_APP */

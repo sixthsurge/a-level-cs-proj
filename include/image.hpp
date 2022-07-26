@@ -5,7 +5,7 @@ template <typename T>
 class Image {
 public:
     // Construct an uninitialized image
-    Image() : 
+    Image() :
         m_data(nullptr),
         m_size(0)
     {}
@@ -24,7 +24,7 @@ public:
     // Loads the image data from a png file at the specified path
     void loadFromFile(const char* path) {
         // Load the image data using the stb_image library
-        int width, height, channelCount;    
+        int width, height, channelCount;
         char* data = stbi_load(path, &width, &height, &channelCount, T::length());
 
         if (data == NULL || channelCount != T::length()) {
@@ -38,7 +38,6 @@ public:
             m_size.y = height;
         }
     }
-
 
     // Writes the image data to a png file at the specified path
     void writeToFile(const char* path) const {
@@ -125,7 +124,7 @@ private:
     }
 
     glm::ivec2 m_size;
-    
+
     T* m_data;
 };
 
