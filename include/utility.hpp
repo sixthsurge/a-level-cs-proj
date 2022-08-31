@@ -41,6 +41,12 @@ struct Box {
 
 // Useful functions
 
+// Returns a 3D vector of the first 3 components of a given 4D vector
+// Replacement for GLSL swizzle vec4.xyz
+inline glm::vec3 xyz(const glm::vec4& xyzw) {
+    return glm::vec3(xyzw.x, xyzw.y, xyzw.z);
+}
+
 // True if x is between min and max
 inline bool between(float x, float min, float max) {
     return x >= min && x <= max;

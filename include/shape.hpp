@@ -12,15 +12,15 @@ public:
     /*
      * Returns true if the ray intersects the shape. In this case, t is set to the distance along
      * the ray to the point of intersection. This function may also store information about the
-     * intersection for the Shape implementation to use later
+     * intersection in intersectionInfo which can used by getMaterial() and getNormal()
      */
-    virtual bool intersects(const Ray& ray, float& t) = 0;
+    virtual bool intersects(const Ray& ray, float& t, glm::vec4& intersectionInfo) const = 0;
 
     // Returns the material of the shape at the intersection position
-    virtual Material getMaterial() const = 0;
+    virtual Material getMaterial(const glm::vec4& intersectionInfo) const = 0;
 
     // Returns the normal vector to the shape at the last intersection position
-    virtual glm::vec3 getNormal() const = 0;
+    virtual glm::vec3 getNormal(const glm::vec4& intersectionInfo) const = 0;
 
     // Returns the smallest possible axis-aligned box that encloses the entire shape
     virtual Box getBoundingBox() const = 0;
@@ -29,7 +29,11 @@ public:
 class TriangleShape : public Shape {
 public:
     struct Vertex {
-        glm::vec3 pos; // The position of the vertex
+        glm::vec3 pos;      // The vertex's position
+        glm::vec3 normal;   // The vertex's normal vector
+        glm::vec3 color;    // The vertex's color
+        glm::vec2 texCoord; // Texture coordinates of the vertex (position of this vertex in the texture atlas)
+        glm::vec3 emission;
     };
 
     explicit TriangleShape(const std::array<Vertex, 3>& vertices) :
@@ -41,7 +45,7 @@ public:
      * I learnt the algorithm from this tutorial:
      * https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
      */
-    bool intersects(const Ray& ray, float& t) override {
+    bool intersects(const Ray& ray, float& t, glm::vec4& intersectionInfo) const override {
         // Get the position of each vertex
         glm::vec3 a = m_vertices[0].pos;
         glm::vec3 b = m_vertices[1].pos;
@@ -72,24 +76,25 @@ public:
 
         // Finally, compute t
         t = dot(q, ac) * det;
+        if (t < 0.0f) return false;
 
-        // Compute normal for later
-        m_normal  = normalize(cross(ac, ab));
-        m_normal *= glm::sign(dot(m_normal, ray.d));
-
-        // Store barycentric coordinates for later
-        m_uv = glm::vec2(u, v);
+        // Store barycentric coordinates in intersection info
+        intersectionInfo = glm::vec4(u, v, 0.0f, 0.0f);
 
         return true;
     }
 
-    Material getMaterial() const override {
+    Material getMaterial(const glm::vec4& intersectionInfo) const override {
         Material material;
+        material.albedo = m_vertices[0].color;
+        material.emission = m_vertices[0].emission;
         return material;
     }
 
-    glm::vec3 getNormal() const override {
-        return m_normal;
+    glm::vec3 getNormal(const glm::vec4& intersectionInfo) const override {
+        float u = intersectionInfo.x;
+        float v = intersectionInfo.y;
+        return m_vertices[0].normal * u + m_vertices[1].normal * v + m_vertices[2].normal * (1.0f - u - v);
     }
 
     Box getBoundingBox() const override {
@@ -105,11 +110,7 @@ public:
         };
     }
 
-private:
     const std::array<Vertex, 3> m_vertices;
-
-    glm::vec2 m_uv; // The barycentric coordinates computed from the last intersection
-    glm::vec3 m_normal; // The normal vector computed from the last intersection
 };
 
 class SphereShape : public Shape {
@@ -125,7 +126,7 @@ public:
      * If the discriminant is zero then there are no solutions and thus no intersections. Otherwise,
      * the result from solving the equation is the distance to enter and exit the sphere
      */
-    bool intersects(const Ray& ray, float& t) override {
+    bool intersects(const Ray& ray, float& t, glm::vec4& intersectionInfo) const override {
         // Translate the working space such that the sphere's origin is the origin
         glm::vec3 translatedRayOrigin = ray.o - m_origin;
 
@@ -149,17 +150,18 @@ public:
         }
 
         // Compute and store the normal vector to the sphere at the intersection point
-        m_normal = (ray(t) - m_origin) / m_radius;
+        glm::vec3 normal = (ray(t) - m_origin) / m_radius;
+        intersectionInfo = glm::vec4(normal, t);
 
         return true;
     }
 
-    Material getMaterial() const override {
+    Material getMaterial(const glm::vec4& intersectionInfo) const override {
         return m_material;
     }
 
-    glm::vec3 getNormal() const override {
-        return m_normal;
+    glm::vec3 getNormal(const glm::vec4& intersectionInfo) const override {
+        return xyz(intersectionInfo);
     }
 
     Box getBoundingBox() const override {
@@ -173,8 +175,6 @@ private:
     const Material m_material;
     const glm::vec3 m_origin;
     const float m_radius;
-
-    glm::vec3 m_normal; // The normal vector computed from the last intersection
 };
 
 #endif /* INCLUDE_CORE_SHAPE */
