@@ -35,46 +35,30 @@ enum class AppState
 	Rendering // Rendering in progress
 };
 
-void pcg(std::uint32_t& seed) {
-    uint state = seed * 747796405u + 2891336453u;
-    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-    seed = (word >> 22u) ^ word;
-}
-
-float random01(std::uint32_t& rngState) {
-	pcg(rngState);
-	return glm::fract((float) rngState / (float) 0xffffffffu);
-}
-
-glm::vec3 uniformSphereSample(glm::vec2 hash) {
-	hash.x *= tau; hash.y = 2.0f * hash.y - 1.0f;
-	return glm::vec3(glm::vec2(glm::sin(hash.x), glm::cos(hash.x)) * glm::sqrt(1.0f - hash.y * hash.y), hash.y);
-}
-
-glm::vec3 cosineWeightedHemisphereSample(glm::vec3 vector, glm::vec2 hash) {
-	auto dir = glm::normalize(uniformSphereSample(hash) + vector);
-	return glm::dot(dir, vector) < 0.0 ? -dir : dir;
-}
-
-glm::vec3 tracePath(Ray ray, const Scene& scene, int depth, std::uint32_t rngState) {
-	if (depth > 3) return glm::vec3(0.0f);
+glm::vec3 tracePath(Ray ray, const Scene& scene, int depth, glm::vec2 random, bool insideTransparentMaterial) {
+	if (depth > 5) return glm::vec3(0.0f);
 
 	Hit hit;
 	if (scene.intersects(ray, hit)) {
-		glm::vec2 hash;
-		hash.x = random01(rngState);
-		hash.y = random01(rngState);
+		glm::vec3 tint;
 
 		Ray newRay;
-		newRay.o = hit.pos + hit.normal * 0.0001f;
-		newRay.d = cosineWeightedHemisphereSample(hit.normal, hash);
+		newRay.d = importanceSampleBsdf(hit.material, ray.d, hit.normal, random, insideTransparentMaterial, tint);
+		newRay.o = hit.pos + newRay.d * 0.0001f;
 
-		glm::vec3 irradiance = tracePath(newRay, scene, depth + 1, rngState);
+		glm::vec3 irradiance = tracePath(newRay, scene, depth + 1, hash(random), insideTransparentMaterial);
 
-		return irradiance * hit.material.albedo + hit.material.emission;
+		return irradiance * tint + hit.material.emission;
 	} else {
 		return glm::vec3(0.0f);
 	}
+}
+
+// Filmic tonemapping operator by Jim Hejl and Richard Burgess
+// Source: http://filmicworlds.com/blog/filmic-tonemapping-operators/
+glm::vec3 tonemapHejlBurgess(glm::vec3 rgb)
+{
+	return (rgb * (6.2f * rgb + 0.5f)) / (rgb * (6.2f * rgb + 1.7f) + 0.06f);
 }
 
 int main()
@@ -86,7 +70,10 @@ int main()
 	displayTexture.create(windowSize.x, windowSize.y);
 
 	Image<glm::vec3> radianceImage(windowSize.x, windowSize.y);
-	Image<glm::u8vec4> displayImage(windowSize.x, windowSize.y);
+	Image<u8vec4> displayImage(windowSize.x, windowSize.y);
+
+	Image<u8vec4> blueNoiseImage(512, 512);
+	blueNoiseImage.loadFromFile("assets/bluenoise.png");
 
 	Scene scene;
 	Renderer renderer;
@@ -133,21 +120,20 @@ int main()
 
 					Ray ray = camera.getPrimaryRay(coord);
 
-					std::uint32_t rngState = 323920u * std::uint32_t(pos.y * windowSize.x + pos.x) + frameIndex;
+					auto blueNoise = blueNoiseImage.load(pos % 512);
+					glm::vec2 random = R2(frameIndex, glm::vec2(blueNoise.x, blueNoise.y) / 255.0f);
 
-					//glm::vec3 color = tracePath(ray, scene, 0, rngState);
-					glm::vec3 color = glm::vec3(0.0f);
+					glm::vec3 color = tracePath(ray, scene, 0, random, false);
 
 					if (frameIndex == 1)
 					{
-						return glm::vec3(coord.x, coord.y, 1.0f);
+						return color;
 					}
 					else
 					{
 						glm::vec3 previousColor = radianceImage.load(pos);
-						float weight = 1.0f / (float) frameIndex;
-
-						return mix(previousColor, color, 0.01f);
+						float frameWeight = 1.0f / (float) frameIndex;
+						return glm::mix(previousColor, color, frameWeight);
 					}
 				},
 				8
@@ -158,9 +144,7 @@ int main()
 				{
 					glm::vec3 color = radianceImage.load(pos);
 
-					color *= 20.0f;
-					color /= color + 1.0f;
-					color  = glm::pow(color, glm::vec3(2.2f));
+					color = tonemapHejlBurgess(color);
 
 					return u8vec4(255.0f * glm::vec4(color, 1.0f));
 				},

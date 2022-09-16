@@ -33,12 +33,11 @@ public:
     {
         glm::vec3 pos;      // The vertex's position
         glm::vec3 normal;   // The vertex's normal vector
-        glm::vec3 color;    // The vertex's color
-        glm::vec2 texCoord; // Texture coordinates of the vertex (position of this vertex in the texture atlas)
-        glm::vec3 emission;
+        glm::vec2 texCoord; // Texture coordinates of the vertex (position of this vertex in the texture atlas
     };
 
-    explicit TriangleShape(const std::array<Vertex, 3>& vertices) :
+    TriangleShape(const Material& material, const std::array<Vertex, 3>& vertices) :
+        m_material(material),
         m_vertices(vertices) {}
 
     /*
@@ -89,10 +88,7 @@ public:
 
     Material getMaterial(const glm::vec4& intersectionInfo) const override
     {
-        Material material;
-        material.albedo = m_vertices[0].color;
-        material.emission = m_vertices[0].emission;
-        return material;
+        return m_material;
     }
 
     glm::vec3 getNormal(const glm::vec4& intersectionInfo) const override
@@ -116,6 +112,7 @@ public:
         };
     }
 
+    const Material m_material;
     const std::array<Vertex, 3> m_vertices;
 };
 

@@ -48,8 +48,19 @@ public:
 					std::array<TriangleShape::Vertex, 3> vertices;
 
 					bool hasNormalData = false;
-					const auto& material = materials[shapes[shapeIndex].mesh.material_ids[triIndex]];
+					const auto& tinyobjMaterial = materials[shapes[shapeIndex].mesh.material_ids[triIndex]];
+					
+					// Convert from tinyobjloader material format to Lumos material format
+					Material material;
+					material.diffuse         = toVec3((float*) tinyobjMaterial.diffuse);
+					material.specular        = toVec3((float*) tinyobjMaterial.specular);
+					material.emission        = toVec3((float*) tinyobjMaterial.ambient);
+					material.transmittance   = toVec3((float*) tinyobjMaterial.transmittance);
+					material.refractiveIndex = tinyobjMaterial.ior;
+					material.roughness       = tinyobjMaterial.roughness;
+					material.isOpaque        = tinyobjMaterial.dissolve > 0.5f;
 
+					// Set each vertex from the 3D model
 					int i = 0;
 					for (auto& vertex : vertices)
 					{
@@ -59,15 +70,6 @@ public:
 						vertex.pos.x = attrib.vertices[indices.vertex_index * 3 + 0];
 						vertex.pos.y = attrib.vertices[indices.vertex_index * 3 + 1];
 						vertex.pos.z = attrib.vertices[indices.vertex_index * 3 + 2];
-
-						// Get vertex color
-						vertex.color.x = attrib.colors[indices.vertex_index * 3 + 0] * material.diffuse[0];
-						vertex.color.y = attrib.colors[indices.vertex_index * 3 + 1] * material.diffuse[1];
-						vertex.color.z = attrib.colors[indices.vertex_index * 3 + 2] * material.diffuse[2];
-
-						vertex.emission.x = material.ambient[0];
-						vertex.emission.y = material.ambient[1];
-						vertex.emission.z = material.ambient[2];
 
 						// If normal_index is negative, there is no normal data for this vertex so
 						// we compute the normal later
@@ -105,7 +107,7 @@ public:
 					}
 
 					// Add the new triangle to the scene
-					add(new TriangleShape(vertices));
+					add(new TriangleShape(material, vertices));
 
 					// Update index offset for next triangle
 					indexOffset += 3;

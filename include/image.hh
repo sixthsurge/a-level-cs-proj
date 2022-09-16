@@ -27,7 +27,7 @@ public:
     {
         // Load the image data using the stb_image library
         int width, height, channelCount;
-        char* data = stbi_load(path, &width, &height, &channelCount, T::length());
+        unsigned char* data = stbi_load(path, &width, &height, &channelCount, T::length());
 
         if (data == NULL || channelCount != T::length())
         {
@@ -63,7 +63,7 @@ public:
     // Returns the data stored in the pixel at `pos`.
     T load(glm::ivec2 pos) const
     {
-        assert(clamp(pos, glm::ivec2(0), m_size) == pos);
+        assert(glm::clamp(pos, glm::ivec2(0), m_size) == pos);
         int pixelIndex = getPixelIndex(pos);
         return m_data[pixelIndex];
     }
@@ -130,11 +130,10 @@ public:
     }
 
 private:
-    // Assigns a unique integer index to each pixel, its location in the backing array
-    // rows-then-columns seems to be the standard way to do this
+    // Assigns a unique integer location to each pixel, its location in the backing array
     int getPixelIndex(glm::ivec2 pos) const
     {
-        return pos.y * m_size.x + m_size.x;
+        return pos.y * m_size.x + pos.x;
     }
 
     glm::ivec2 m_size;
