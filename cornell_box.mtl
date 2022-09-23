@@ -3,6 +3,11 @@ Ka 0 0 0
 Kd 1 1 1
 Ks 0 0 0
 
+newmtl grey
+Ka 0 0 0
+Kd 0.1 0.1 0.1
+Ks 0 0 0
+
 newmtl red
 Ka 0 0 0
 Kd 1 0 0
@@ -23,6 +28,34 @@ Ka 20 15 12
 Kd 1 1 1
 Ks 0 0 0
 
+newmtl blue_glowy
+Ka 0 3 5
+Kd 0 0 0
+Ks 0 0 0
+
+newmtl pink_glowy
+Ka 5 0 3
+Kd 0 0 0
+Ks 0 0 0
+
+newmtl metal
+Ka 0 0 0
+Kd 0 0 0
+Ks 0.9 0.9 0.9
+Pr 0.03
+
+newmtl dark_metal
+Ka 0 0 0
+Kd 0 0 0
+Ks 0.1 0.1 0.1
+Pr 0.2
+
+newmtl rough_metal
+Ka 0 0 0
+Kd 0 0 0
+Ks 0.3 0.3 0.3
+Pr 0.5
+
 newmtl gold
 Ka 0 0 0
 Kd 0 0 0
@@ -35,3 +68,4 @@ Ks 0.04 0.04 0.04
 d 0.1
 Ns 96.078431
 Ni 1.5
+Pr 0.03

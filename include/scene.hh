@@ -57,7 +57,7 @@ public:
 					material.emission        = toVec3((float*) tinyobjMaterial.ambient);
 					material.transmittance   = toVec3((float*) tinyobjMaterial.transmittance);
 					material.refractiveIndex = tinyobjMaterial.ior;
-					material.roughness       = tinyobjMaterial.roughness;
+					material.roughness       = tinyobjMaterial.roughness == 0.0f ? 1.0f : tinyobjMaterial.roughness;
 					material.isOpaque        = tinyobjMaterial.dissolve > 0.5f;
 
 					// Set each vertex from the 3D model

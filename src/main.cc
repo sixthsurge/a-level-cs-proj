@@ -44,7 +44,7 @@ glm::vec3 tracePath(Ray ray, const Scene& scene, int depth, glm::vec2 random, bo
 
 		Ray newRay;
 		newRay.d = importanceSampleBsdf(hit.material, ray.d, hit.normal, random, insideTransparentMaterial, tint);
-		newRay.o = hit.pos + newRay.d * 0.0001f;
+		newRay.o = hit.pos + 0.0001f * newRay.d;
 
 		glm::vec3 irradiance = tracePath(newRay, scene, depth + 1, hash(random), insideTransparentMaterial);
 
@@ -83,7 +83,7 @@ int main()
 
 	camera.aspectRatio = 960.0f / 720.0f;
 	camera.fov = 60.0f;
-	camera.position = glm::vec3(250.0f, 300.0f, -500.0f);
+	camera.position = glm::vec3(274.0f, 250.0f, -800.0f);
 	camera.rotation = glm::vec2(0.0f);
 
 	std::string warning, error;
@@ -97,8 +97,6 @@ int main()
 
 	while (window.isOpen())
 	{
-		++frameIndex;
-
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -121,7 +119,7 @@ int main()
 					Ray ray = camera.getPrimaryRay(coord);
 
 					auto blueNoise = blueNoiseImage.load(pos % 512);
-					glm::vec2 random = R2(frameIndex, glm::vec2(blueNoise.x, blueNoise.y) / 255.0f);
+					glm::vec2 random = R2(frameIndex, glm::clamp(glm::vec2(blueNoise.x, blueNoise.y) / 255.0f, 0.0f, 1.0f));
 
 					glm::vec3 color = tracePath(ray, scene, 0, random, false);
 
@@ -132,8 +130,8 @@ int main()
 					else
 					{
 						glm::vec3 previousColor = radianceImage.load(pos);
-						float frameWeight = 1.0f / (float) frameIndex;
-						return glm::mix(previousColor, color, frameWeight);
+						float historyWeight = (float) frameIndex / ((float) frameIndex + 1.0f);
+						return glm::mix(color, previousColor, historyWeight);
 					}
 				},
 				8
@@ -153,6 +151,8 @@ int main()
 
 			displayTexture.update(displayImage.data());
 			sprite.setTexture(displayTexture);
+
+			++frameIndex;
 		}
 
 
