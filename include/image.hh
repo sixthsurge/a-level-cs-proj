@@ -11,10 +11,10 @@ public:
     {}
 
     // Construct a blank image of the specified width and height
-    Image(int width, int height) :
-        m_size(width, height)
+    Image(glm::ivec2 size) :
+        m_size(size)
     {
-        m_data = new T[width * height];
+        m_data = new T[size.x * size.y];
     }
 
     ~Image()
