@@ -52,10 +52,10 @@ public:
 					
 					// Convert from tinyobjloader material format to Lumos material format
 					Material material;
-					material.diffuse         = toVec3((float*) tinyobjMaterial.diffuse);
-					material.specular        = toVec3((float*) tinyobjMaterial.specular);
-					material.emission        = toVec3((float*) tinyobjMaterial.ambient);
-					material.transmittance   = toVec3((float*) tinyobjMaterial.transmittance);
+					material.diffuse         = glm::pow(toVec3((float*) tinyobjMaterial.diffuse), glm::vec3(2.2f));
+					material.specular        = glm::pow(toVec3((float*) tinyobjMaterial.specular), glm::vec3(2.2f));
+					material.emission        = glm::pow(toVec3((float*) tinyobjMaterial.ambient), glm::vec3(2.2f));
+					material.transmittance   = glm::pow(toVec3((float*) tinyobjMaterial.transmittance), glm::vec3(2.2f));
 					material.refractiveIndex = tinyobjMaterial.ior;
 					material.roughness       = tinyobjMaterial.roughness == 0.0f ? 1.0f : tinyobjMaterial.roughness;
 					material.isOpaque        = tinyobjMaterial.dissolve > 0.5f;

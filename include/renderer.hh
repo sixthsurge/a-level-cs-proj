@@ -19,10 +19,11 @@ public:
 
 private:
     // Recursive path-tracing algorithm
-    glm::vec3 tracePathSegment(const Ray& ray, const glm::vec2& random, int depth, bool insideTransparentMaterial);
+    glm::vec3 tracePathSegment(const Ray& ray, const glm::vec2& random, int depth, int maxDepth, bool insideTransparentMaterial);
 
     int              m_frameIndex;     // Incremented each frame
     int              m_groupCount;     // Number of pixel groups (threads) used by the renderer
+    glm::vec3        m_ambient;        // Color of ambient light source
     glm::ivec2       m_windowSize;     // Size of the window in pixels
 	Image<glm::vec3> m_radianceImage;  // Image used to store the result of the path tracer as a floating point colour
 	Image<u8vec4>    m_displayImage;   // The result of the path tracer as an 8-bit image, tone mapped and converted to sRGB

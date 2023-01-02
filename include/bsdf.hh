@@ -41,35 +41,38 @@ inline glm::vec3 importanceSampleBsdf(
     bool& insideTransparentMaterial,    // Whether the path-tracer currently believes it is inside a transparent material like glass
     glm::vec3& tint                     // Set to the remaining, non-importance-sampled part of the BSDF. The radiance should be multiplied by this
 ) {
-    // Calculate fresnel coefficient
-    auto fresnel = fresnelSchlick(material.specular, -glm::dot(incidentDirection, normal));
-    if (fresnel.x != 0.0f) tint = fresnel / fresnel.x;
-
-    // Decide whether the scattering event represents a reflection or a refraction
-    auto reflect = hash(random + 0.1f).x < fresnel.x;
-
     // Randomly offset normal using surface roughness
     // (fake roughness)
     auto newNormal = glm::normalize(normal + material.roughness * uniformHemisphereSample(random, normal));
 
+    // Calculate reflected direction
+    auto reflectedDirection = glm::reflect(incidentDirection, newNormal);
+
+    // Calculate fresnel coefficient
+    auto halfwayDirection = glm::normalize(-incidentDirection + reflectedDirection);
+    auto fresnel = fresnelSchlick(material.specular, glm::dot(halfwayDirection, reflectedDirection));
+
+    // Decide whether the scattering event represents a reflection or a refraction
+    auto reflect = hash(random + 0.1f).x < fresnel.x && (material.specular.x + material.specular.y + material.specular.z) > eps;
+
     // Calculate refracted direction and check if a total internal reflection occurred
     auto eta = insideTransparentMaterial ? material.refractiveIndex : 1.0f / material.refractiveIndex;
-    glm::vec3 refractedDir = glm::refract(incidentDirection, newNormal, eta);
-    if (glm::length(refractedDir) < 0.5f) reflect = true; // Total internal reflection
+    glm::vec3 refractedDirection = glm::refract(incidentDirection, newNormal, eta);
+    if (glm::length(refractedDirection) < 0.5f) reflect = true; // Total internal reflection
 
     if (reflect) // Specular reflection
     {
-        return glm::reflect(incidentDirection, newNormal);
+        return reflectedDirection;
     }
     else if (material.isOpaque) // Diffuse reflection
     {
         tint = material.diffuse;
-        auto direction = glm::normalize(normal + uniformSphereSample(random));
-        return glm::dot(direction, incidentDirection) < 0.0f ? direction : -direction;
+        return glm::normalize(normal + uniformSphereSample(random));
     }
     else // Specular refraction
     {
+        if (fresnel.x != 0.0f) tint = fresnel / fresnel.x;
         insideTransparentMaterial = !insideTransparentMaterial;
-        return refractedDir;
+        return refractedDirection;
     }
 }

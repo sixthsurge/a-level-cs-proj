@@ -7,6 +7,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <vector>
 #include <thread>
@@ -20,6 +21,7 @@
 
 #include "bsdf.hh"
 #include "camera.hh"
+#include "config.hh"
 #include "image.hh"
 #include "material.hh"
 #include "renderer.hh"
@@ -27,40 +29,82 @@
 #include "shape.hh"
 #include "utility.hh"
 
-constexpr auto windowSize = glm::ivec2(960, 540); // Initial window size in pixels
-
-enum class AppState
+int help(std::vector<std::string> args)
 {
-	Preview,  // Before rendering, state where the user can select a model to render and configure the camera
-	Rendering // Rendering in progress
-};
+	
+}
 
-int main()
+// Resets all config variables
+int reset(std::vector<std::string> args)
 {
+	Config config(".lumos");
+	config.reset();
+	config.save();
+	return 0;
+}
+
+// Prints out a single config variable
+//
+// eg: lumos get camera_fov_angle
+// Prints the current camera fov angle
+int get(std::vector<std::string> args)
+{
+	Config config(".lumos");
+	fmt::print("{}: {}", args[2], config.get(args[2]));
+	return 0;
+}
+
+// Set a single config variable
+//
+// eg: lumos set camera_fov_angle 70
+// Sets the camera field-of-view angle to 70 degrees
+int set(std::vector<std::string> args)
+{
+	Config config(".lumos");
+	config.set(args[2], args[3]);
+	config.save();
+	fmt::print("Updated configuration variable \"{}\" to \"{}\".\n", args[2], args[3]);
+	return 0;
+}
+
+int render(std::vector<std::string> args)
+{
+	Config config(".lumos");
+
+	// Get window size from config file
+	glm::ivec2 windowSize;
+	windowSize.x = config.getInt("image_width", 1280);
+	windowSize.y = config.getInt("image_height", 720);
+
+	// Setup window to display the image as it is rendered
 	sf::RenderWindow window(sf::VideoMode(windowSize.x, windowSize.y), "Lumos");
 
-	Renderer renderer(windowSize);
 	Scene scene;
 	PerspectiveCamera camera;
 
+	Renderer renderer(windowSize);
 	renderer.setScene(&scene);
 	renderer.setCamera(&camera);
 
 	// Set up camera
-	camera.aspectRatio = 960.0f / 720.0f;
-	camera.fov = 60.0f;
-	camera.position = glm::vec3(274.0f, 250.0f, -800.0f);
-	camera.rotation = glm::vec2(0.0f);
+	camera.aspectRatio = (float) windowSize.x / (float) windowSize.y;
+	camera.fov         = config.getFloat("camera_fov_angle", 60.0f);
+	camera.position    = glm::vec3(config.getFloat("camera_position_x", 0.0f), config.getFloat("camera_position_y", 0.0f), config.getFloat("camera_position_z", 0.0f));
+	camera.rotation    = glm::vec2(config.getFloat("camera_rotation_x", 0.0f), config.getFloat("camera_rotation_y", 0.0f));
 
-	// Set up scene
+	// Load scene from model
+	std::string modelPath = config.get("model");
+
 	std::string warning, error;
-	if (!scene.loadFromFile("cornell_box.obj", warning, error)) {
-		std::cout << "failed to load scene: " << error;
-	} else {
+	if (!scene.loadFromFile(modelPath.c_str(), warning, error))
+	{
+		std::cout << "failed to load model: " << modelPath << "\n" << error;
+		return 1;
+	} 
+	else
+	{
 		std::cout << warning << std::endl;
 	}
-
-	AppState appState = AppState::Rendering;
 
 	while (window.isOpen())
 	{
@@ -71,18 +115,35 @@ int main()
 			if (event.type == sf::Event::Closed) window.close();
 		}
 
-		if (appState == AppState::Preview)
-		{
-			
-		}		
-		else
-		{
-			renderer.render();
-			renderer.display(window);
-		}
-
+		renderer.render();
+		renderer.display(window);
 		window.display();
 	}
 
 	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	// Transfer command line arguments into std::vector
+	std::vector<std::string> args;
+	for (int i = 0; i < argc; ++i) args.emplace_back(argv[i]);
+
+	// Map of command word (eg "render") to command handler functions
+	std::map<std::string, std::function<int(std::vector<std::string>)>> handlers;
+
+	// Link command words to handler functions 
+	handlers["reset"]  = reset;
+	handlers["get"]    = get;
+	handlers["set"]    = set;
+	handlers["render"] = render;
+	
+	if (handlers.count(args[1])) {
+		// Handler exists for command
+		return handlers[args[1]](args);
+	} else {
+		// No handler for command
+		fmt::print("Unkown command: {}\n", args[1]);
+		fmt::print("See `$ lumos help` for more information\n");
+	}
 }

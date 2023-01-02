@@ -22,7 +22,7 @@ Ray PerspectiveCamera::getPrimaryRay(const glm::vec2& coord) const {
     float perpendicularDistance = 0.5f / glm::tan(0.5f * fov * degrees);
 
     // Calculate position of pixel on the screen
-    glm::vec3 pixelPos = { (coord.x - 0.5f), (coord.y - 0.5f) / aspectRatio, perpendicularDistance };
+    glm::vec3 pixelPos = { (0.5f - coord.x), (0.5f - coord.y) / aspectRatio, perpendicularDistance };
 
     // Calculate ray direction, assuming that the camera is facing along the z axis
     glm::vec3 rayDir = normalize(pixelPos);
